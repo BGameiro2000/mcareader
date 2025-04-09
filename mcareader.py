@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import interpolate
 from scipy.stats import linregress
+from datetime import datetime
 
 from io import open  # python 2 compatibility
 
@@ -104,10 +105,54 @@ class Mca:
             m = re.match(r"(?:.*)%s: (.*?)$" % variable, self.raw, re.DOTALL + re.MULTILINE)
         return m.group(1).strip() if m else ""
 
+    def get_real_time(self, unit="s"):
+        """
+        Get the "REAL_TIME" variable as a numpy.timedelta64.
+
+        Args:
+            unit(str): The unit in which the time was recorded. Defaut is second "s". Units defined in numpy: https://numpy.org/doc/stable/reference/arrays.datetime.html#datetime-units
+
+        Returns:
+            (`numpy.timdedelta64`): The timedelta corresponding to the "real" duration of the measurement.
+
+        """
+
+        return np.datetime64(float(self.get_variable("REAL_TIME")), unit)
+
+    def get_live_time(self, unit="s"):
+        """
+        Get the "LIVE_TIME" variable as a numpy.timedelta64.
+
+        Args:
+            unit(str): The unit in which the time was recorded. Defaut is second "s". Units defined in numpy: https://numpy.org/doc/stable/reference/arrays.datetime.html#datetime-units
+
+        Returns:
+            (`numpy.timdedelta64`): The timedelta corresponding to the "live" duration of the measurement.
+
+        """
+
+        return np.datetime64(float(self.get_variable("LIVE_TIME")), unit)
+
+    def get_start_time(self, format="%d/%m/%Y %H:%M:%S", unit="s"):
+        """
+        Get the "START_TIME" variable as a numpy.datetime64.
+
+        Args:
+            format(str): The format in which the start datetime was recorded. Default is "%d/%m/%Y %H:%M:%S". Formats defined in datetime: https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior
+            unit(str): The unit in which the time was recorded. Defaut is second "s". Units defined in numpy: https://numpy.org/doc/stable/reference/arrays.datetime.html#datetime-units
+
+        Returns:
+            (`numpy.datetime64`): The datetime corresponding to the start of the measurement.
+
+        """
+
+        dt_obj = datetime.strptime(self.get_variable("START_TIME"), format)
+
+        return np.datetime64(dt_obj, unit)
+
     def get_calibration_points(self):
         """
         Get the calibration points from the MCA file, regardless of the calibration parameter used to create the object.
-
 
         Returns:
             (`numpy.ndarray`): The 2D array with the data or None if there is no calibration data.
@@ -128,7 +173,6 @@ class Mca:
 
                 * 'bestfit': A linear fit in the sense of least-squares (default).
                 * 'interpolation': Use a linear interpolation.
-
 
         Returns:
             (`Callable`): A function mapping channel number to energy. Note the first channel is number 0.
